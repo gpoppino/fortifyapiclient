@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
-import sys
-import os
+import sys, os, getopt
 from os import environ
 from dotenv import load_dotenv
 from fortifyapi.fortify import FortifyApi
@@ -32,7 +31,7 @@ def get_project_version_newest_artifact(projectId):
     url = "/api/v1/projectVersions/" + str(projectId) + "/artifacts?start=-1&limit=1"
     return api()._request('GET', url)
 
-def main(project_name, project_version):
+def approve(project_name, project_version):
     _api = api()
 
     response = _api.get_version(project_version)
@@ -64,7 +63,30 @@ def main(project_name, project_version):
 
     return 0
 
+def usage():
+    print("Options:")
+    print(" -a | --approve [PROJECT_NAME] [VERSION]")
+    print(" -h | --help")
+
+def main(argv):
+    try:
+        opts, args = getopt.getopt(argv, "ah", ["approve", "help"])
+    except getopt.GetoptError as err:
+        print(err)
+        usage()
+        return 2
+
+    for opt, arg in opts:
+        if opt in ("-a", "--approve"):
+            if len(args) != 2:
+                usage()
+                return 2
+            approve(args[0], args[1])
+        elif opt in ("-h", "--help"):
+            usage()
+            return 0
+
 if __name__ == '__main__':
     load_dotenv()
-    retcode = main(sys.argv[1], sys.argv[2])
+    retcode = main(sys.argv[1:])
     sys.exit(retcode)
