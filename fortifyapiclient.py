@@ -31,17 +31,24 @@ def get_project_version_newest_artifact(projectId):
     url = "/api/v1/projectVersions/" + str(projectId) + "/artifacts?start=-1&limit=1"
     return api()._request('GET', url)
 
-def approve(project_name, project_version):
+def find_project(project_name, project_version):
     _api = api()
 
     response = _api.get_version(project_version)
-    artifacts_found = None
     for project in response.data['data']:
         if project['project']['name'] == project_name:
-            response = get_project_version_newest_artifact(project['id'])
-            if response != None:
-                artifacts_found = response.data['data']
-            break
+            return project['id']
+    return None
+
+def approve(project_name, project_version):
+    _api = api()
+
+    project = find_project(project_name, project_version)
+    artifacts_found = None
+    if project != None:
+        response = get_project_version_newest_artifact(project['id'])
+        if response != None:
+            artifacts_found = response.data['data']
 
     if artifacts_found == None:
         print("No artifacts found for app version: {0} {1}".format(project_name, project_version))
