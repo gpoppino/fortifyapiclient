@@ -141,21 +141,28 @@ class FortifyApiClient:
             print(response)
             return 1
 
+    def get_job_state(self, scan_id):
+        response = self.__api.get_cloudscan_job_status(scan_id)
+        if response.response_code == 200:
+            return response.data['data']['jobState']
+        return None
+
 def usage():
     print("Options:")
     print(" -a | --approve [PROJECT_NAME] [VERSION]")
     print(" -c | --create [PROJECT_NAME] [VERSION]")
+    print(" -j | --jobstate [JOB_ID]")
     print(" -h | --help")
 
 def main(argv):
     try:
-        opts, args = getopt.getopt(argv, "ach", ["approve", "create", "help"])
+        opts, args = getopt.getopt(argv, "acjh", ["approve", "create", "jobstate", "help"])
     except getopt.GetoptError as err:
         print(err)
         usage()
         return 2
 
-    if len(args) != 2:
+    if len(args) == 0:
         usage()
         return 2
 
@@ -165,6 +172,9 @@ def main(argv):
             fortifyApiClient.approve(args[0], args[1])
         elif opt in ("-c", "--create"):
             fortifyApiClient.create(args[0], args[1])
+        elif opt in ("-j", "--jobstate"):
+            state = fortifyApiClient.get_job_state(args[0])
+            print(state)
         elif opt in ("-h", "--help"):
             usage()
             return 0
