@@ -39,6 +39,12 @@ class FortifyApiClient:
                 return project['id']
         return None
 
+    def __find_project_name(self, project_name):
+        response = self.__api.get_project_versions(project_name)
+        if response.data['data'] != []:
+            return response.data['data'][0]['project']['id']
+        return None
+
     def approve(self, project_name, project_version):
         project_id = self.find_project_version(project_name, project_version)
         artifacts_found = None
@@ -67,7 +73,7 @@ class FortifyApiClient:
 
         return 0
 
-    def __create_project(self, project_name, project_version):
+    def __create_project(self, project_name, project_version, project_id):
         data = {
             "name": project_version,
             "description": "",
@@ -81,6 +87,8 @@ class FortifyApiClient:
                 "issueTemplateId": "Prioritized-HighRisk-Project-Template",
             }
         }
+        if project_id != None:
+            data['project']['id'] = project_id
         url = '/api/v1/projectVersions'
         return self.__api._request('POST', url, json=data)
 
@@ -122,7 +130,7 @@ class FortifyApiClient:
             print("Project already exists with ID: " + str(project))
             return 0
 
-        response = self.__create_project(project_name, project_version)
+        response = self.__create_project(project_name, project_version, self.__find_project_name(project_name))
         if response.response_code == 201:
             project_id = response.data['data']['id']
             print("Project created with Id: {0}".format(project_id))
