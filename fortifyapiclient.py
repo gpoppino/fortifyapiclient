@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import sys, os, getopt
+import sys, os, getopt, base64, requests
 from os import environ
 from dotenv import load_dotenv
 from fortifyapi.fortify import FortifyApi
@@ -16,17 +16,17 @@ description = 'fortify-api-client'
 class FortifyApiClient:
 
     def __init__(self):
-        self.__api = None
+        self.api = None
 
     def __token(self):
-        api = FortifyApi(host=os.getenv('FORTIFY_SSC_URL'), username=os.getenv('FORTIFY_SSC_USERNAME'), password=os.getenv('FORTIFY_SSC_PASSWORD'), verify_ssl=False)
-        response = api.get_token(description=description)
+        _api = FortifyApi(host=os.getenv('FORTIFY_SSC_URL'), username=os.getenv('FORTIFY_SSC_USERNAME'), password=os.getenv('FORTIFY_SSC_PASSWORD'), verify_ssl=False)
+        response = _api.get_token(description=description)
         return response.data['data']['token']
 
     def __api(self):
-        if self.__api == None:
-            self.__api = FortifyApi(host=os.getenv('FORTIFY_SSC_URL'), token=self.__token(), verify_ssl=False)
-        return self.__api
+        if self.api == None:
+            self.api = FortifyApi(host=os.getenv('FORTIFY_SSC_URL'), token=self.__token(), verify_ssl=False)
+        return self.api
 
     def __approve_artifact(self, artifactId):
         data = { "artifactIds": [ artifactId ], "comment": "fortifyAPIclient CI approval client" }
@@ -152,6 +152,24 @@ class FortifyApiClient:
             return response.data['data']['jobState']
         return None
 
+    def __basic_auth_request(self, method, url, json=None):
+        my_basic_auth_headers = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json;charset=UTF-8',
+            'User-Agent': 'fortifyapiclient ' + __version__
+        }
+        auth = os.getenv('FORTIFY_SSC_USERNAME') + ":" + os.getenv('FORTIFY_SSC_PASSWORD')
+        my_basic_auth_headers['Authorization'] = "Basic %s" % base64.b64encode(auth.encode("utf-8")).decode()
+        return requests.request(method, os.getenv('FORTIFY_SSC_URL') + url, json=json, headers=my_basic_auth_headers)
+
+    def cleanup(self):
+        data = {
+            'tokens': [ self.__api().token ]
+        }
+        url = '/api/v1/tokens/action/revoke'
+        self.__api = None
+        return self.__basic_auth_request('POST', url, data)
+
 def usage():
     print("Options:")
     print(" -a | --approve [PROJECT_NAME] [VERSION]")
@@ -183,6 +201,7 @@ def main(argv):
         elif opt in ("-h", "--help"):
             usage()
             return 0
+    fortifyApiClient.cleanup()
 
 if __name__ == '__main__':
     load_dotenv()
