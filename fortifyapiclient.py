@@ -16,31 +16,36 @@ description = 'fortify-api-client'
 class FortifyApiClient:
 
     def __init__(self):
-        self.__api = FortifyApi(host=os.getenv('FORTIFY_SSC_URL'), token=self.__token(), verify_ssl=False)
+        self.__api = None
 
     def __token(self):
         api = FortifyApi(host=os.getenv('FORTIFY_SSC_URL'), username=os.getenv('FORTIFY_SSC_USERNAME'), password=os.getenv('FORTIFY_SSC_PASSWORD'), verify_ssl=False)
         response = api.get_token(description=description)
         return response.data['data']['token']
 
+    def __api(self):
+        if self.__api == None:
+            self.__api = FortifyApi(host=os.getenv('FORTIFY_SSC_URL'), token=self.__token(), verify_ssl=False)
+        return self.__api
+
     def __approve_artifact(self, artifactId):
         data = { "artifactIds": [ artifactId ], "comment": "fortifyAPIclient CI approval client" }
         url = '/api/v1/artifacts/action/approve'
-        return self.__api._request('POST', url, json=data)
+        return self.__api()._request('POST', url, json=data)
 
     def __get_project_version_newest_artifact(self, projectId):
         url = "/api/v1/projectVersions/" + str(projectId) + "/artifacts?start=-1&limit=1"
-        return self.__api._request('GET', url)
+        return self.__api()._request('GET', url)
 
     def find_project_version(self, project_name, project_version):
-        response = self.__api.get_version(project_version)
+        response = self.__api().get_version(project_version)
         for project in response.data['data']:
             if project['project']['name'] == project_name:
                 return project['id']
         return None
 
     def __find_project_name(self, project_name):
-        response = self.__api.get_project_versions(project_name)
+        response = self.__api().get_project_versions(project_name)
         if response.data['data'] != []:
             return response.data['data'][0]['project']['id']
         return None
@@ -90,7 +95,7 @@ class FortifyApiClient:
         if project_id != None:
             data['project']['id'] = project_id
         url = '/api/v1/projectVersions'
-        return self.__api._request('POST', url, json=data)
+        return self.__api()._request('POST', url, json=data)
 
     def __update_project_attributes(self, id):
         data = [
@@ -112,7 +117,7 @@ class FortifyApiClient:
         ]
 
         url = '/api/v1/projectVersions/{0}/attributes'.format(id)
-        return self.__api._request('PUT', url, json=data)
+        return self.__api()._request('PUT', url, json=data)
 
     def __commit_project(self, project_id):
         data = {
@@ -122,7 +127,7 @@ class FortifyApiClient:
             }
         }
         url = '/api/v1/projectVersions/{0}'.format(project_id)
-        return self.__api._request('PUT', url, json=data)
+        return self.__api()._request('PUT', url, json=data)
 
     def create(self, project_name, project_version):
         project = self.find_project_version(project_name, project_version)
@@ -142,7 +147,7 @@ class FortifyApiClient:
             return 1
 
     def get_job_state(self, scan_id):
-        response = self.__api.get_cloudscan_job_status(scan_id)
+        response = self.__api().get_cloudscan_job_status(scan_id)
         if response.response_code == 200:
             return response.data['data']['jobState']
         return None
