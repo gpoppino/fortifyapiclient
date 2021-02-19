@@ -19,6 +19,8 @@ class FortifyApiClient:
         self.api = None
 
     def __token(self):
+        if os.getenv('FORTIFY_TOKEN') != None:
+            return base64.b64encode(os.getenv('FORTIFY_TOKEN').encode("utf-8")).decode()
         _api = FortifyApi(host=os.getenv('FORTIFY_SSC_URL'), username=os.getenv('FORTIFY_SSC_USERNAME'), password=os.getenv('FORTIFY_SSC_PASSWORD'), verify_ssl=False)
         response = _api.get_token(description=description)
         return response.data['data']['token']
@@ -163,11 +165,16 @@ class FortifyApiClient:
         return requests.request(method, os.getenv('FORTIFY_SSC_URL') + url, json=json, headers=my_basic_auth_headers)
 
     def cleanup(self):
+        if os.getenv('FORTIFY_SSC_USERNAME') == None or os.getenv('FORTIFY_SSC_PASSWORD') == None:
+            self.__api = None
+            return
+
         data = {
             'tokens': [ self.__api().token ]
         }
         url = '/api/v1/tokens/action/revoke'
         self.__api = None
+
         return self.__basic_auth_request('POST', url, data)
 
 def usage():
