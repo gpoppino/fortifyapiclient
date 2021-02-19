@@ -1,2 +1,3 @@
 fortifyapi==2.3
 python-dotenv
+requests
