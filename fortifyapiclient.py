@@ -5,7 +5,7 @@ from os import environ
 from dotenv import load_dotenv
 from fortifyapi.fortify import FortifyApi
 
-__version__ = "2.1.2"
+__version__ = "2.2"
 
 # Set encoding
 environ["PYTHONIOENCODING"] = "utf-8"
