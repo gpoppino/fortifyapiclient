@@ -162,7 +162,7 @@ class FortifyApiClient:
         }
         auth = os.getenv('FORTIFY_SSC_USERNAME') + ":" + os.getenv('FORTIFY_SSC_PASSWORD')
         my_basic_auth_headers['Authorization'] = "Basic %s" % base64.b64encode(auth.encode("utf-8")).decode()
-        return requests.request(method, os.getenv('FORTIFY_SSC_URL') + url, json=json, headers=my_basic_auth_headers)
+        return requests.request(method, os.getenv('FORTIFY_SSC_URL') + url, json=json, headers=my_basic_auth_headers, verify=False)
 
     def cleanup(self):
         if os.getenv('FORTIFY_SSC_USERNAME') == None or os.getenv('FORTIFY_SSC_PASSWORD') == None:
